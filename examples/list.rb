@@ -5,7 +5,8 @@
     h = handle_class.new(table)
     chain = h.first_chain
     while chain
-      puts "    #{chain}#{h.builtin?(chain) ? ' (builtin)' : ''}"
+      policy = h.get_policy(chain)
+      puts "    #{chain}#{h.builtin?(chain) ? ' (builtin)' : ''} (policy #{policy.inspect})"
       rule = h.first_rule(chain)
       while rule
         puts "      #{rule.get_target(h)} #{rule.inspect}"
