@@ -8,7 +8,7 @@
       puts "    #{chain}"
       rule = h.first_rule(chain)
       while rule
-        puts "      #{rule.inspect}"
+        puts "      #{rule.get_target(h)} #{rule.inspect}"
         rule = h.next_rule(rule)
       end
       chain = h.next_chain

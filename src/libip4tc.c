@@ -188,6 +188,21 @@ static mrb_value m_rule_dmsk(mrb_state *mrb, mrb_value self) {
   return mrb_str_new_cstr(mrb, buf);
 }
 
+static mrb_value m_rule_get_target(mrb_state *mrb, mrb_value self) {
+  mrb_value handle;
+  struct xtc_handle *h;
+  const char *target;
+
+  mrb_get_args(mrb, "o", &handle);
+  h = unwrap_xtc_handle(mrb, handle);
+  target = iptc_get_target(unwrap_entry(mrb, self), h);
+  if (target == NULL) {
+    return mrb_nil_value();
+  } else {
+    return mrb_str_new_cstr(mrb, target);
+  }
+}
+
 void mrb_mruby_libip4tc_gem_init(mrb_state *mrb) {
   struct RClass *module = mrb_define_module(mrb, "Libip4tc");
   struct RClass *handle =
@@ -215,4 +230,6 @@ void mrb_mruby_libip4tc_gem_init(mrb_state *mrb) {
   mrb_define_method(mrb, rule, "smsk", m_rule_smsk, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "dst", m_rule_dst, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "dmsk", m_rule_dmsk, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "get_target", m_rule_get_target,
+                    MRB_ARGS_REQ(1));
 }
