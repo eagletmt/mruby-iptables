@@ -1,1 +1,1 @@
-# mruby-libiptc
+# mruby-iptables

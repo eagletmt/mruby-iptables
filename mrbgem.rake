@@ -1,5 +1,5 @@
-MRuby::Gem::Specification.new('mruby-libiptc') do |spec|
-  spec.name = 'mruby-libiptc'
+MRuby::Gem::Specification.new('mruby-iptables') do |spec|
+  spec.name = 'mruby-iptables'
   spec.authors = ['Kohei Suzuki']
   spec.licenses = ['MIT']
 
