@@ -1,10 +1,10 @@
 def rule_to_args(rule)
   args = []
 
-  if rule.src != '0.0.0.0/0'
+  if rule.src != '::/0'
     args << '-s' << rule.src
   end
-  if rule.dst != '0.0.0.0/0'
+  if rule.dst != '::/0'
     args << '-d' << rule.dst
   end
 
@@ -36,10 +36,10 @@ def rule_to_args(rule)
   args
 end
 
-Libxtables.init(Libxtables::NFPROTO_IPV4)
+Libxtables.init(Libxtables::NFPROTO_IPV6)
 %w[nat filter].each do |table|
   puts "*#{table}"
-  h = Libip4tc::Handle.new(table)
+  h = Libip6tc::Handle.new(table)
 
   chain = h.first_chain
   while chain
