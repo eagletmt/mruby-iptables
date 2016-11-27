@@ -150,6 +150,19 @@ static mrb_value m_handle_next_rule(mrb_state *mrb, mrb_value self) {
   }
 }
 
+static mrb_value m_handle_buildin_p(mrb_state *mrb, mrb_value self) {
+  mrb_value chain;
+
+  mrb_get_args(mrb, "S", &chain);
+
+  if (iptc_builtin(mrb_string_value_cstr(mrb, &chain),
+                   unwrap_xtc_handle(mrb, self))) {
+    return mrb_true_value();
+  } else {
+    return mrb_false_value();
+  }
+}
+
 static mrb_value m_rule_pcnt(mrb_state *mrb, mrb_value self) {
   /* FIXME: counters.pcnt is u64 but mrb_int isn't capable */
   return mrb_fixnum_value(unwrap_entry(mrb, self)->counters.pcnt);
@@ -220,6 +233,8 @@ void mrb_mruby_libip4tc_gem_init(mrb_state *mrb) {
   mrb_define_method(mrb, handle, "first_rule", m_handle_first_rule,
                     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, handle, "next_rule", m_handle_next_rule,
+                    MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, handle, "builtin?", m_handle_buildin_p,
                     MRB_ARGS_REQ(1));
 
   MRB_SET_INSTANCE_TT(rule, MRB_TT_DATA);
