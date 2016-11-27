@@ -173,32 +173,41 @@ static mrb_value m_rule_bcnt(mrb_state *mrb, mrb_value self) {
   return mrb_fixnum_value(unwrap_entry(mrb, self)->counters.bcnt);
 }
 
-static mrb_value m_rule_src(mrb_state *mrb, mrb_value self) {
-  char buf[INET6_ADDRSTRLEN] = {0};
+static int prefix_length(const struct in6_addr *addr) {
+  int i, len = 0;
 
-  inet_ntop(AF_INET6, &unwrap_entry(mrb, self)->ipv6.src, buf, sizeof(buf));
-  return mrb_str_new_cstr(mrb, buf);
+  for (i = 0; i < 4; i++) {
+    const uint32_t n = ntohl(addr->s6_addr32[i]);
+    const int l = __builtin_popcount(n);
+    if (l == 0) {
+      break;
+    }
+    if ((n & ((1U << (32 - l)) - 1)) != 0) {
+      return -1;
+    }
+    len += l;
+  }
+  return len;
 }
 
-static mrb_value m_rule_smsk(mrb_state *mrb, mrb_value self) {
+static mrb_value m_rule_src(mrb_state *mrb, mrb_value self) {
   char buf[INET6_ADDRSTRLEN] = {0};
+  const struct ip6t_entry *entry;
 
-  inet_ntop(AF_INET6, &unwrap_entry(mrb, self)->ipv6.smsk, buf, sizeof(buf));
-  return mrb_str_new_cstr(mrb, buf);
+  entry = unwrap_entry(mrb, self);
+  inet_ntop(AF_INET6, &entry->ipv6.src, buf, sizeof(buf));
+  return mrb_format(mrb, "%S/%S", mrb_str_new_cstr(mrb, buf),
+                    mrb_fixnum_value(prefix_length(&entry->ipv6.smsk)));
 }
 
 static mrb_value m_rule_dst(mrb_state *mrb, mrb_value self) {
   char buf[INET6_ADDRSTRLEN] = {0};
+  const struct ip6t_entry *entry;
 
-  inet_ntop(AF_INET6, &unwrap_entry(mrb, self)->ipv6.dst, buf, sizeof(buf));
-  return mrb_str_new_cstr(mrb, buf);
-}
-
-static mrb_value m_rule_dmsk(mrb_state *mrb, mrb_value self) {
-  char buf[INET6_ADDRSTRLEN] = {0};
-
-  inet_ntop(AF_INET6, &unwrap_entry(mrb, self)->ipv6.dmsk, buf, sizeof(buf));
-  return mrb_str_new_cstr(mrb, buf);
+  entry = unwrap_entry(mrb, self);
+  inet_ntop(AF_INET6, &entry->ipv6.dst, buf, sizeof(buf));
+  return mrb_format(mrb, "%S/%S", mrb_str_new_cstr(mrb, buf),
+                    mrb_fixnum_value(prefix_length(&entry->ipv6.dmsk)));
 }
 
 static mrb_value m_rule_get_target(mrb_state *mrb, mrb_value self) {
@@ -242,9 +251,7 @@ void mrb_mruby_libip6tc_gem_init(mrb_state *mrb) {
   mrb_define_method(mrb, rule, "pcnt", m_rule_pcnt, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "bcnt", m_rule_bcnt, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "src", m_rule_src, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rule, "smsk", m_rule_smsk, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "dst", m_rule_dst, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rule, "dmsk", m_rule_dmsk, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "get_target", m_rule_get_target,
                     MRB_ARGS_REQ(1));
 }

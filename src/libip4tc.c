@@ -173,32 +173,35 @@ static mrb_value m_rule_bcnt(mrb_state *mrb, mrb_value self) {
   return mrb_fixnum_value(unwrap_entry(mrb, self)->counters.bcnt);
 }
 
+static int prefix_length(const struct in_addr *addr) {
+  int len = 0;
+
+  const uint32_t n = ntohl(addr->s_addr);
+  const int l = __builtin_popcount(n);
+  if ((n & ((1U << (32 - l)) - 1)) != 0) {
+    return -1;
+  }
+  return len;
+}
+
 static mrb_value m_rule_src(mrb_state *mrb, mrb_value self) {
   char buf[INET_ADDRSTRLEN] = {0};
+  const struct ipt_entry *entry;
 
-  inet_ntop(AF_INET, &unwrap_entry(mrb, self)->ip.src, buf, sizeof(buf));
-  return mrb_str_new_cstr(mrb, buf);
+  entry = unwrap_entry(mrb, self);
+  inet_ntop(AF_INET, &entry->ip.src, buf, sizeof(buf));
+  return mrb_format(mrb, "%S/%S", mrb_str_new_cstr(mrb, buf),
+                    mrb_fixnum_value(prefix_length(&entry->ip.smsk)));
 }
 
 static mrb_value m_rule_dst(mrb_state *mrb, mrb_value self) {
   char buf[INET_ADDRSTRLEN] = {0};
+  const struct ipt_entry *entry;
 
-  inet_ntop(AF_INET, &unwrap_entry(mrb, self)->ip.dst, buf, sizeof(buf));
-  return mrb_str_new_cstr(mrb, buf);
-}
-
-static mrb_value m_rule_smsk(mrb_state *mrb, mrb_value self) {
-  char buf[INET_ADDRSTRLEN] = {0};
-
-  inet_ntop(AF_INET, &unwrap_entry(mrb, self)->ip.smsk, buf, sizeof(buf));
-  return mrb_str_new_cstr(mrb, buf);
-}
-
-static mrb_value m_rule_dmsk(mrb_state *mrb, mrb_value self) {
-  char buf[INET_ADDRSTRLEN] = {0};
-
-  inet_ntop(AF_INET, &unwrap_entry(mrb, self)->ip.dmsk, buf, sizeof(buf));
-  return mrb_str_new_cstr(mrb, buf);
+  entry = unwrap_entry(mrb, self);
+  inet_ntop(AF_INET, &entry->ip.dst, buf, sizeof(buf));
+  return mrb_format(mrb, "%S/%S", mrb_str_new_cstr(mrb, buf),
+                    mrb_fixnum_value(prefix_length(&entry->ip.dmsk)));
 }
 
 static mrb_value m_rule_get_target(mrb_state *mrb, mrb_value self) {
@@ -242,9 +245,7 @@ void mrb_mruby_libip4tc_gem_init(mrb_state *mrb) {
   mrb_define_method(mrb, rule, "pcnt", m_rule_pcnt, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "bcnt", m_rule_bcnt, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "src", m_rule_src, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rule, "smsk", m_rule_smsk, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "dst", m_rule_dst, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rule, "dmsk", m_rule_dmsk, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "get_target", m_rule_get_target,
                     MRB_ARGS_REQ(1));
 }
