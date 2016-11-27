@@ -3,5 +3,5 @@ MRuby::Gem::Specification.new('mruby-libiptc') do |spec|
   spec.authors = ['Kohei Suzuki']
   spec.licenses = ['MIT']
 
-  spec.linker.libraries << 'ip4tc' << 'ip6tc'
+  spec.linker.libraries << 'ip4tc' << 'ip6tc' << 'xtables'
 end

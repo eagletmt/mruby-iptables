@@ -2,9 +2,15 @@
 #include <errno.h>
 #include <libiptc/libip6tc.h>
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/string.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <xtables.h>
 
 static void libip6tc_handle_free(mrb_state *mrb, void *ptr) {
   struct xtc_handle *h = (struct xtc_handle *)ptr;
@@ -324,6 +330,81 @@ static mrb_value m_rule_get_target(mrb_state *mrb, mrb_value self) {
   }
 }
 
+static mrb_value capture_match_args(
+    mrb_state *mrb, const struct xtables_match *match,
+    const struct ip6t_ip6 *ip, const struct ip6t_entry_match *entry_match) {
+  int fds[2];
+  pid_t pid;
+  int status;
+  char buf[1024];
+  ssize_t read_bytes;
+  mrb_value result = mrb_str_new(mrb, NULL, 0);
+
+  if (pipe(fds) == -1) {
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "pipe failed: %S",
+               mrb_str_new_cstr(mrb, strerror(errno)));
+  }
+
+  fflush(stdout);
+  fflush(stderr);
+  pid = fork();
+  if (pid == -1) {
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "fork failed: %S",
+               mrb_str_new_cstr(mrb, strerror(errno)));
+  }
+
+  if (pid == 0) {
+    close(fds[0]);
+    if (dup2(fds[1], STDOUT_FILENO) == -1) {
+      perror("dup2");
+      exit(EXIT_FAILURE);
+    }
+    match->save(ip, entry_match);
+    close(fds[1]);
+    exit(EXIT_SUCCESS);
+  }
+
+  close(fds[1]);
+  while ((read_bytes = read(fds[0], buf, sizeof(buf))) != 0) {
+    mrb_str_cat(mrb, result, buf, read_bytes);
+  }
+  waitpid(pid, &status, 0);
+
+  if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "Child process %S exited with %S",
+               mrb_fixnum_value(pid), mrb_fixnum_value(WEXITSTATUS(status)));
+  }
+  return mrb_str_substr(mrb, result, 1, RSTRING_LEN(result) - 1);
+}
+
+static int push_match(const struct ip6t_entry_match *match, mrb_state *mrb,
+                      mrb_value matches, const struct ip6t_ip6 *ip) {
+  const struct xtables_match *m;
+  struct RClass *match_class =
+      mrb_class_get_under(mrb, mrb_module_get(mrb, "Libip6tc"), "Match");
+
+  xtables_set_nfproto(NFPROTO_IPV6);
+  m = xtables_find_match(match->u.user.name, XTF_TRY_LOAD, NULL);
+  if (m != NULL) {
+    mrb_value argv[2];
+
+    argv[0] = mrb_str_new_cstr(mrb, match->u.user.name);
+    argv[1] = capture_match_args(mrb, m, ip, match);
+    mrb_ary_push(mrb, matches, mrb_obj_new(mrb, match_class, 2, argv));
+  }
+  return 0;
+}
+
+static mrb_value m_rule_matches(mrb_state *mrb, mrb_value self) {
+  const struct ip6t_entry *entry;
+  mrb_value matches = mrb_ary_new(mrb);
+
+  entry = unwrap_entry(mrb, self);
+  IP6T_MATCH_ITERATE(entry, push_match, mrb, matches, &entry->ipv6);
+
+  return matches;
+}
+
 void mrb_mruby_libip6tc_gem_init(mrb_state *mrb) {
   struct RClass *module = mrb_define_module(mrb, "Libip6tc");
   struct RClass *handle =
@@ -372,4 +453,5 @@ void mrb_mruby_libip6tc_gem_init(mrb_state *mrb) {
                     MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "get_target", m_rule_get_target,
                     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, rule, "matches", m_rule_matches, MRB_ARGS_NONE());
 }
