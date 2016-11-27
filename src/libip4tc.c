@@ -204,14 +204,12 @@ static mrb_value m_rule_bcnt(mrb_state *mrb, mrb_value self) {
 }
 
 static int prefix_length(const struct in_addr *addr) {
-  int len = 0;
-
   const uint32_t n = ntohl(addr->s_addr);
   const int l = __builtin_popcount(n);
   if ((n & ((1U << (32 - l)) - 1)) != 0) {
     return -1;
   }
-  return len;
+  return l;
 }
 
 static mrb_value m_rule_src(mrb_state *mrb, mrb_value self) {
