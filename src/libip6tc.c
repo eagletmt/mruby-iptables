@@ -408,6 +408,10 @@ static int push_match(const struct ip6t_entry_match *match, mrb_state *mrb,
     argv[0] = mrb_str_new_cstr(mrb, match->u.user.name);
     argv[1] = capture_match_args(mrb, m, ip, match);
     mrb_ary_push(mrb, matches, mrb_obj_new(mrb, match_class, 2, argv));
+  } else {
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "xtables_find_match(\"%S\") failed: %S",
+               mrb_str_new_cstr(mrb, match->u.user.name),
+               mrb_str_new_cstr(mrb, ip6tc_strerror(errno)));
   }
   return 0;
 }
