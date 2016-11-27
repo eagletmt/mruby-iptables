@@ -247,6 +247,58 @@ static mrb_value m_rule_outiface(mrb_state *mrb, mrb_value self) {
   }
 }
 
+static mrb_value test_flags(mrb_state *mrb, mrb_value rule, unsigned flag) {
+  if (unwrap_entry(mrb, rule)->ip.flags & flag) {
+    return mrb_true_value();
+  } else {
+    return mrb_false_value();
+  }
+}
+
+static mrb_value m_rule_frag_p(mrb_state *mrb, mrb_value self) {
+  return test_flags(mrb, self, IPT_F_FRAG);
+}
+
+static mrb_value m_rule_goto_p(mrb_state *mrb, mrb_value self) {
+  return test_flags(mrb, self, IPT_F_GOTO);
+}
+
+static mrb_value test_inv_flags(mrb_state *mrb, mrb_value rule, unsigned flag) {
+  if (unwrap_entry(mrb, rule)->ip.invflags & flag) {
+    return mrb_true_value();
+  } else {
+    return mrb_false_value();
+  }
+}
+
+static mrb_value m_rule_inv_via_in_p(mrb_state *mrb, mrb_value rule) {
+  return test_inv_flags(mrb, rule, IPT_INV_VIA_IN);
+}
+
+static mrb_value m_rule_inv_via_out_p(mrb_state *mrb, mrb_value rule) {
+  return test_inv_flags(mrb, rule, IPT_INV_VIA_OUT);
+}
+
+static mrb_value m_rule_inv_tos_p(mrb_state *mrb, mrb_value rule) {
+  return test_inv_flags(mrb, rule, IPT_INV_TOS);
+}
+
+static mrb_value m_rule_inv_srcip_p(mrb_state *mrb, mrb_value rule) {
+  return test_inv_flags(mrb, rule, IPT_INV_SRCIP);
+}
+
+static mrb_value m_rule_inv_dstip_p(mrb_state *mrb, mrb_value rule) {
+  return test_inv_flags(mrb, rule, IPT_INV_DSTIP);
+}
+
+static mrb_value m_rule_inv_frag_p(mrb_state *mrb, mrb_value rule) {
+  return test_inv_flags(mrb, rule, IPT_INV_FRAG);
+}
+
+static mrb_value m_rule_inv_proto_p(mrb_state *mrb, mrb_value rule) {
+  return test_inv_flags(mrb, rule, IPT_INV_PROTO);
+}
+
 static mrb_value m_rule_get_target(mrb_state *mrb, mrb_value self) {
   mrb_value handle;
   struct xtc_handle *h;
@@ -293,6 +345,20 @@ void mrb_mruby_libip4tc_gem_init(mrb_state *mrb) {
   mrb_define_method(mrb, rule, "dst", m_rule_dst, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "iniface", m_rule_iniface, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "outiface", m_rule_outiface, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "frag?", m_rule_frag_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "goto?", m_rule_goto_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "inv_via_in?", m_rule_inv_via_in_p,
+                    MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "inv_via_out?", m_rule_inv_via_out_p,
+                    MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "inv_tos?", m_rule_inv_tos_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "inv_srcip?", m_rule_inv_srcip_p,
+                    MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "inv_dstip?", m_rule_inv_dstip_p,
+                    MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "inv_frag?", m_rule_inv_frag_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "inv_proto?", m_rule_inv_proto_p,
+                    MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "get_target", m_rule_get_target,
                     MRB_ARGS_REQ(1));
 }
