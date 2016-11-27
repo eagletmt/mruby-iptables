@@ -243,6 +243,16 @@ static mrb_value m_rule_iniface(mrb_state *mrb, mrb_value self) {
   }
 }
 
+static mrb_value m_rule_outiface(mrb_state *mrb, mrb_value self) {
+  const char *iface = unwrap_entry(mrb, self)->ipv6.outiface;
+
+  if (iface[0] == '\0') {
+    return mrb_nil_value();
+  } else {
+    return mrb_str_new_cstr(mrb, iface);
+  }
+}
+
 static mrb_value m_rule_get_target(mrb_state *mrb, mrb_value self) {
   mrb_value handle;
   struct xtc_handle *h;
@@ -288,6 +298,7 @@ void mrb_mruby_libip6tc_gem_init(mrb_state *mrb) {
   mrb_define_method(mrb, rule, "src", m_rule_src, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "dst", m_rule_dst, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "iniface", m_rule_iniface, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "outiface", m_rule_outiface, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "get_target", m_rule_get_target,
                     MRB_ARGS_REQ(1));
 }
