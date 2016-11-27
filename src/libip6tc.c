@@ -6,6 +6,7 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/string.h>
+#include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
@@ -259,6 +260,22 @@ static mrb_value m_rule_outiface(mrb_state *mrb, mrb_value self) {
   }
 }
 
+static mrb_value m_rule_proto(mrb_state *mrb, mrb_value self) {
+  const uint16_t proto = unwrap_entry(mrb, self)->ipv6.proto;
+
+  if (proto == 0) {
+    return mrb_nil_value();
+  } else {
+    const struct protoent *result = getprotobynumber(proto);
+
+    if (result != NULL) {
+      return mrb_str_new_cstr(mrb, result->p_name);
+    } else {
+      return mrb_fixnum_value(proto);
+    }
+  }
+}
+
 static mrb_value test_flags(mrb_state *mrb, mrb_value rule, unsigned flag) {
   if (unwrap_entry(mrb, rule)->ipv6.flags & flag) {
     return mrb_true_value();
@@ -436,6 +453,7 @@ void mrb_mruby_libip6tc_gem_init(mrb_state *mrb) {
   mrb_define_method(mrb, rule, "dst", m_rule_dst, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "iniface", m_rule_iniface, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "outiface", m_rule_outiface, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rule, "proto", m_rule_proto, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "proto?", m_rule_proto_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "tos?", m_rule_tos_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, rule, "goto?", m_rule_goto_p, MRB_ARGS_NONE());
